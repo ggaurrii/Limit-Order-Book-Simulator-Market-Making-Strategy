@@ -7,14 +7,14 @@
 #include "lob/OrderBook.hpp"
 #include "lob/MatchingEngine.hpp"
 
-#include <vector>
-#include <cstddef>
+#include "lob/IMarketMakingStrategy.hpp"
 
 namespace lob {
 
-class MarketMaker {
+class MarketMaker : public IMarketMakingStrategy {
 public:
     explicit MarketMaker(const MarketMakerConfig& config = MarketMakerConfig());
+    ~MarketMaker() override = default;
 
     // Process execution and trade events emitted by MatchingEngine
     void on_market_events(const std::vector<MarketEvent>& events);

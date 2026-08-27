@@ -17,6 +17,7 @@ add_library(lob_core STATIC
     src/MatchingEngine.cpp
     src/MarketSimulator.cpp
     src/MarketMaker.cpp
+    src/AvellanedaStoikovMarketMaker.cpp
 )
 
 add_executable(lob_demo
@@ -34,11 +35,17 @@ add_executable(market_maker_demo
 )
 target_link_libraries(market_maker_demo PRIVATE lob_core)
 
+add_executable(strategy_comparison_demo
+    src/strategy_comparison_demo.cpp
+)
+target_link_libraries(strategy_comparison_demo PRIVATE lob_core)
+
 add_executable(test_runner
     tests/test_order_book.cpp
     tests/test_matching_engine.cpp
     tests/test_simulator.cpp
     tests/test_market_maker.cpp
+    tests/test_avellaneda_stoikov.cpp
 )
 target_link_libraries(test_runner PRIVATE lob_core)
 
