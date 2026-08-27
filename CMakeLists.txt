@@ -15,6 +15,7 @@ include_directories(include)
 add_library(lob_core STATIC
     src/OrderBook.cpp
     src/MatchingEngine.cpp
+    src/MarketSimulator.cpp
 )
 
 add_executable(lob_demo
@@ -22,9 +23,15 @@ add_executable(lob_demo
 )
 target_link_libraries(lob_demo PRIVATE lob_core)
 
+add_executable(sim_demo
+    src/sim_demo.cpp
+)
+target_link_libraries(sim_demo PRIVATE lob_core)
+
 add_executable(test_runner
     tests/test_order_book.cpp
     tests/test_matching_engine.cpp
+    tests/test_simulator.cpp
 )
 target_link_libraries(test_runner PRIVATE lob_core)
 
