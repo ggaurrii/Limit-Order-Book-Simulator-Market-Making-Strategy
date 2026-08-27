@@ -16,6 +16,7 @@ add_library(lob_core STATIC
     src/OrderBook.cpp
     src/MatchingEngine.cpp
     src/MarketSimulator.cpp
+    src/MarketMaker.cpp
 )
 
 add_executable(lob_demo
@@ -28,10 +29,16 @@ add_executable(sim_demo
 )
 target_link_libraries(sim_demo PRIVATE lob_core)
 
+add_executable(market_maker_demo
+    src/market_maker_demo.cpp
+)
+target_link_libraries(market_maker_demo PRIVATE lob_core)
+
 add_executable(test_runner
     tests/test_order_book.cpp
     tests/test_matching_engine.cpp
     tests/test_simulator.cpp
+    tests/test_market_maker.cpp
 )
 target_link_libraries(test_runner PRIVATE lob_core)
 
