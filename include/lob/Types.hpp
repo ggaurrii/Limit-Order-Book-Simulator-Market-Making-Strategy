@@ -15,7 +15,8 @@ using Timestamp = std::uint64_t;      // Nanoseconds or tick timestamp
 
 enum class Side : std::uint8_t {
     Buy,
-    Sell
+    Sell,
+    Unknown
 };
 
 enum class OrderType : std::uint8_t {
@@ -40,6 +41,7 @@ inline std::string to_string(Side side) {
     switch (side) {
         case Side::Buy: return "BUY";
         case Side::Sell: return "SELL";
+        case Side::Unknown: return "UNKNOWN";
     }
     return "UNKNOWN";
 }

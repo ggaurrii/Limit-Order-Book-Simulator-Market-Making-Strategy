@@ -142,6 +142,189 @@ TEST(MatchingEngineTest, InvalidOrderRejections) {
     EXPECT_EQ(evts3[0].event_type, EventType::OrderRejected);
 }
 
+TEST(MatchingEngineTest, CrossingLimitOrderWithRemainder) {
+    MatchingEngine engine;
+
+    // Asks at 100 (20), 101 (30), 105 (40)
+    engine.submit_limit_order(1, Side::Sell, 100, 20, 1000);
+    engine.submit_limit_order(2, Side::Sell, 101, 30, 1001);
+    engine.submit_limit_order(3, Side::Sell, 105, 40, 1002);
+
+    // Limit Buy at 102 with Qty 70
+    // Crosses ask 100 (20 filled) and ask 101 (30 filled). Total filled = 50.
+    // Does NOT cross ask 105 (102 < 105).
+    // Remaining qty 20 rests on Bid book at limit price 102.
+    auto events = engine.submit_limit_order(4, Side::Buy, 102, 70, 1003);
+
+    std::vector<Trade> trades;
+    for (const auto& evt : events) {
+        if (evt.event_type == EventType::TradeGenerated) {
+            trades.push_back(evt.trade);
+        }
+    }
+
+    EXPECT_EQ(trades.size(), static_cast<std::size_t>(2));
+    EXPECT_EQ(trades[0].trade_id, static_cast<std::uint64_t>(1));
+    EXPECT_EQ(trades[0].price, static_cast<Price>(100));
+    EXPECT_EQ(trades[0].quantity, static_cast<Quantity>(20));
+
+    EXPECT_EQ(trades[1].trade_id, static_cast<std::uint64_t>(2));
+    EXPECT_EQ(trades[1].price, static_cast<Price>(101));
+    EXPECT_EQ(trades[1].quantity, static_cast<Quantity>(30));
+
+    Price bid_p = 0, ask_p = 0;
+    Quantity bid_v = 0, ask_v = 0;
+
+    EXPECT_TRUE(engine.book().get_best_bid(bid_p, bid_v));
+    EXPECT_EQ(bid_p, static_cast<Price>(102));
+    EXPECT_EQ(bid_v, static_cast<Quantity>(20));
+
+    EXPECT_TRUE(engine.book().get_best_ask(ask_p, ask_v));
+    EXPECT_EQ(ask_p, static_cast<Price>(105));
+    EXPECT_EQ(ask_v, static_cast<Quantity>(40));
+}
+
+TEST(MatchingEngineTest, MiddleOrderCancellationFIFO) {
+    MatchingEngine engine;
+
+    // Three bids at price 100
+    engine.submit_limit_order(1, Side::Buy, 100, 10, 1000); // Head
+    engine.submit_limit_order(2, Side::Buy, 100, 20, 1001); // Middle
+    engine.submit_limit_order(3, Side::Buy, 100, 30, 1002); // Tail
+
+    // Cancel middle order #2
+    auto cnl_events = engine.cancel_order(2, 1003);
+    EXPECT_EQ(cnl_events.size(), static_cast<std::size_t>(1));
+    EXPECT_EQ(cnl_events[0].event_type, EventType::OrderCancelled);
+    EXPECT_EQ(cnl_events[0].order_id, static_cast<OrderId>(2));
+
+    // Submit Limit Sell at 100 for Qty 25
+    // Should fill Order #1 (10), skip Order #2 (cancelled), and fill Order #3 partially (15)
+    auto events = engine.submit_limit_order(4, Side::Sell, 100, 25, 1004);
+
+    std::vector<Trade> trades;
+    for (const auto& evt : events) {
+        if (evt.event_type == EventType::TradeGenerated) {
+            trades.push_back(evt.trade);
+        }
+    }
+
+    EXPECT_EQ(trades.size(), static_cast<std::size_t>(2));
+    EXPECT_EQ(trades[0].buy_order_id, static_cast<OrderId>(1));
+    EXPECT_EQ(trades[0].quantity, static_cast<Quantity>(10));
+
+    EXPECT_EQ(trades[1].buy_order_id, static_cast<OrderId>(3));
+    EXPECT_EQ(trades[1].quantity, static_cast<Quantity>(15));
+
+    // Order #3 should have 15 remaining resting on Bid book
+    Price bid_p = 0;
+    Quantity bid_v = 0;
+    EXPECT_TRUE(engine.book().get_best_bid(bid_p, bid_v));
+    EXPECT_EQ(bid_p, static_cast<Price>(100));
+    EXPECT_EQ(bid_v, static_cast<Quantity>(15));
+}
+
+TEST(MatchingEngineTest, MarketOrderAgainstEmptyBook) {
+    MatchingEngine engine;
+
+    // Market buy against empty ask book
+    auto buy_events = engine.submit_market_order(1, Side::Buy, 50, 1000);
+    EXPECT_EQ(buy_events.size(), static_cast<std::size_t>(2));
+    EXPECT_EQ(buy_events[0].event_type, EventType::OrderAccepted);
+    EXPECT_EQ(buy_events[1].event_type, EventType::OrderCancelled);
+    EXPECT_EQ(buy_events[1].quantity, static_cast<Quantity>(50));
+    EXPECT_TRUE(engine.book().empty());
+
+    // Market sell against empty bid book
+    auto sell_events = engine.submit_market_order(2, Side::Sell, 30, 1001);
+    EXPECT_EQ(sell_events.size(), static_cast<std::size_t>(2));
+    EXPECT_EQ(sell_events[0].event_type, EventType::OrderAccepted);
+    EXPECT_EQ(sell_events[1].event_type, EventType::OrderCancelled);
+    EXPECT_EQ(sell_events[1].quantity, static_cast<Quantity>(30));
+    EXPECT_TRUE(engine.book().empty());
+}
+
+TEST(MatchingEngineTest, LargeMultiLevelSweep) {
+    MatchingEngine engine;
+
+    // Create 4 ask levels: 100 (10), 101 (20), 102 (30), 103 (40)
+    engine.submit_limit_order(1, Side::Sell, 100, 10, 1000);
+    engine.submit_limit_order(2, Side::Sell, 101, 20, 1001);
+    engine.submit_limit_order(3, Side::Sell, 102, 30, 1002);
+    engine.submit_limit_order(4, Side::Sell, 103, 40, 1003);
+
+    // Limit Buy @ 105 for Qty 150 (sweeps all asks = 100, rests 50 @ 105)
+    auto events = engine.submit_limit_order(5, Side::Buy, 105, 150, 1004);
+
+    std::vector<Trade> trades;
+    for (const auto& evt : events) {
+        if (evt.event_type == EventType::TradeGenerated) {
+            trades.push_back(evt.trade);
+        }
+    }
+
+    EXPECT_EQ(trades.size(), static_cast<std::size_t>(4));
+    EXPECT_EQ(trades[0].price, static_cast<Price>(100));
+    EXPECT_EQ(trades[1].price, static_cast<Price>(101));
+    EXPECT_EQ(trades[2].price, static_cast<Price>(102));
+    EXPECT_EQ(trades[3].price, static_cast<Price>(103));
+
+    EXPECT_TRUE(engine.book().ask_empty());
+    
+    Price bid_p = 0;
+    Quantity bid_v = 0;
+    EXPECT_TRUE(engine.book().get_best_bid(bid_p, bid_v));
+    EXPECT_EQ(bid_p, static_cast<Price>(105));
+    EXPECT_EQ(bid_v, static_cast<Quantity>(50));
+}
+
+TEST(MatchingEngineTest, SequenceAndTradeMonotonicity) {
+    MatchingEngine engine;
+
+    EXPECT_EQ(engine.current_sequence(), static_cast<SequenceNumber>(1));
+    EXPECT_EQ(engine.current_trade_id(), static_cast<std::uint64_t>(1));
+
+    auto ev1 = engine.submit_limit_order(1, Side::Sell, 100, 10, 1000);
+    SequenceNumber prev_seq = ev1.back().sequence_number;
+
+    auto ev2 = engine.submit_limit_order(2, Side::Buy, 100, 10, 1001);
+    for (const auto& evt : ev2) {
+        EXPECT_TRUE(evt.sequence_number > prev_seq);
+        prev_seq = evt.sequence_number;
+    }
+
+    std::uint64_t prev_trade_id = 0;
+    for (const auto& evt : ev2) {
+        if (evt.event_type == EventType::TradeGenerated) {
+            EXPECT_TRUE(evt.trade.trade_id > prev_trade_id);
+            prev_trade_id = evt.trade.trade_id;
+        }
+    }
+}
+
+TEST(MatchingEngineTest, MatchingEngineReset) {
+    MatchingEngine engine;
+
+    engine.submit_limit_order(1, Side::Buy, 100, 50, 1000);
+    engine.submit_limit_order(2, Side::Sell, 105, 30, 1001);
+    engine.submit_limit_order(3, Side::Buy, 105, 10, 1002); // Executes against #2
+
+    EXPECT_FALSE(engine.book().empty());
+    EXPECT_TRUE(engine.book().total_order_count() > 0);
+    EXPECT_TRUE(engine.current_sequence() > 1);
+    EXPECT_TRUE(engine.current_trade_id() > 1);
+
+    engine.reset();
+
+    EXPECT_TRUE(engine.book().empty());
+    EXPECT_EQ(engine.book().total_order_count(), static_cast<std::size_t>(0));
+    EXPECT_FALSE(engine.book().has_order(1));
+    EXPECT_FALSE(engine.book().has_order(2));
+    EXPECT_FALSE(engine.book().has_order(3));
+    EXPECT_EQ(engine.current_sequence(), static_cast<SequenceNumber>(1));
+    EXPECT_EQ(engine.current_trade_id(), static_cast<std::uint64_t>(1));
+}
+
 int main() {
     return ::test_framework::run_all_tests();
 }

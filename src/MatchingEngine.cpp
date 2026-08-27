@@ -495,14 +495,14 @@ std::vector<MarketEvent> MatchingEngine::match_market_sell(Order& sell_order) {
 std::vector<MarketEvent> MatchingEngine::cancel_order(OrderId id, Timestamp ts) {
     std::vector<MarketEvent> events;
 
-    Order cancelled_order(0, Side::Buy, OrderType::Limit, 0, 0, 0);
+    Order cancelled_order(0, Side::Unknown, OrderType::Limit, 0, 0, 0);
     if (!m_book.cancel_order(id, cancelled_order)) {
         MarketEvent rej;
         rej.event_type = EventType::OrderRejected;
         rej.sequence_number = get_next_sequence();
         rej.timestamp = ts;
         rej.order_id = id;
-        rej.side = Side::Buy;
+        rej.side = Side::Unknown;
         rej.price = 0;
         rej.quantity = 0;
         rej.remaining_quantity = 0;
