@@ -30,6 +30,14 @@ High-performance, deterministic C++ Limit Order Book (LOB), Matching Engine, Syn
   - **Deterministic Event-Replay Harness**: Replays the exact same pre-generated external market event stream through both Baseline and Avellaneda-Stoikov strategies.
   - **Comprehensive Risk & Equity Metrics**: Sharpe ratio, maximum drawdown, PnL volatility, average absolute inventory, and fill rate.
 
+- **Real-Time Web Trading Terminal & Gateway**:
+  - **Depth of Market (DOM) / Order Book Ladder**: Real-time Level 2 bid/ask depth visualization with dynamic volume bars.
+  - **Interactive Order Gateway**: Live Limit & Market order submissions with instant execution feedback.
+  - **$O(1)$ Order Cancellation**: Working orders panel with single-click instant cancellations.
+  - **Live Canvas Price Chart**: Progression tracker for reference price, mid-price, and executed trades.
+  - **Simulator & Regime Controller**: Play/pause, tick speed adjustment, and market regimes (Normal, High Volatility, Low Liquidity, Buy/Sell Imbalance).
+  - **Quantitative Strategy Dashboard**: Live inventory gauges ($q$), realized/unrealized PnL, reservation price ($r$), optimal spread ($\delta$), and rolling volatility ($\sigma$).
+
 ## Directory Structure
 
 ```
@@ -90,6 +98,16 @@ mingw32-make test
 mingw32-make strategy_comparison_demo.exe
 .\strategy_comparison_demo.exe
 ```
+
+#### Launch Real-Time Web Trading Dashboard (Full-Stack UI):
+```bash
+# Option A: 1-click batch script
+.\run_web.bat
+
+# Option B: Make command
+mingw32-make web
+```
+Navigate to `http://127.0.0.1:8000` in your browser.
 
 #### Run Phase 3 Market Maker Strategy Demo:
 ```bash

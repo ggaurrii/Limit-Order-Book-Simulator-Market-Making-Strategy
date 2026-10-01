@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LOB Execution Terminal | C++ Matching Engine</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            tRoot: '#0b0e14',
+            tPanel: '#11141d',
+            tHeader: '#161a26',
+            tBorder: '#232838',
+            tBuy: '#2ebd85',
+            tSell: '#f6465d',
+            tAccent: '#f0b90b',
+            tText: '#eaecef',
+            tSub: '#848e9c',
+            tDim: '#5e6673',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-[#0b0e14] text-[#eaecef]">
+
+  <!-- TOP APP BAR -->
+  <header class="bg-[#161a26] border-b border-[#232838] px-3 py-1.5 flex items-center justify-between text-xs">
+    <!-- Left: Instrument & Engine info -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-sm text-white tracking-tight">LIMIT ORDER BOOK</span>
+        <span class="text-[10px] mono bg-[#232838] text-[#848e9c] px-1.5 py-0.5 rounded-[2px]">C++ CORE</span>
+      </div>
+
+      <div class="h-4 w-[1px] bg-[#232838]"></div>
+
+      <!-- Ticker Data -->
+      <div class="flex items-center gap-5 mono text-xs">
+        <div>
+          <span class="text-[#5e6673] text-[10px] block">REF PRICE</span>
+          <span id="header-ref-price" class="font-semibold text-white">10,000</span>
+        </div>
+        <div>
+          <span class="text-[#5e6673] text-[10px] block">MID PRICE</span>
+          <span id="header-mid-price" class="font-semibold text-white">--</span>
+        </div>
+        <div>
+          <span class="text-[#5e6673] text-[10px] block">SPREAD</span>
+          <span id="header-spread" class="font-semibold text-[#f0b90b]">--</span>
+        </div>
+        <div>
+          <span class="text-[#5e6673] text-[10px] block">DEPTH ORDERS</span>
+          <span id="header-total-orders" class="font-semibold text-[#848e9c]">0</span>
+        </div>
+        <div>
+          <span class="text-[#5e6673] text-[10px] block">SEQ NO.</span>
+          <span id="header-seq" class="font-semibold text-[#5e6673]">0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Connection & Engine Controls -->
+    <div class="flex items-center gap-2 mono text-[11px]">
+      <div id="connection-badge" class="flex items-center gap-1.5 px-2 py-0.5 bg-[#12261e] border border-[#1a3d30] text-[#2ebd85] rounded-[2px]">
+        <span class="w-1.5 h-1.5 rounded-full bg-[#2ebd85]"></span>
+        <span id="connection-text">ONLINE</span>
+      </div>
+      <button id="btn-sound" class="btn-terminal py-0.5 px-2 text-[11px]">Audio: ON</button>
+      <button id="btn-reset" class="btn-terminal py-0.5 px-2 bg-[#2d1216] border-[#4a1c23] text-[#f6465d] hover:bg-[#3d181e]">Reset Engine</button>
+    </div>
+  </header>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="flex-1 p-2 grid grid-cols-12 gap-2 overflow-hidden">
+    
+    <!-- COL 1: ORDER ENTRY & SIMULATION (Width: 3 cols) -->
+    <div class="col-span-12 lg:col-span-3 flex flex-col gap-2 overflow-y-auto">
+      
+      <!-- ORDER PLACEMENT PANEL -->
+      <div class="terminal-panel">
+        <div class="panel-header">
+          <span>Order Entry</span>
+          <span class="mono text-[10px] text-[#5e6673]">GATEWAY</span>
+        </div>
+        
+        <div class="p-3 flex flex-col gap-2.5">
+          <!-- Side Tabs -->
+          <div class="grid grid-cols-2 gap-1 bg-[#0b0e14] p-0.5 border border-[#232838] rounded-[2px]">
+            <button id="tab-buy" class="py-1 text-xs font-bold bg-[#2ebd85] text-[#0b0e14] rounded-[2px]">BUY</button>
+            <button id="tab-sell" class="py-1 text-xs font-bold text-[#848e9c] hover:text-white rounded-[2px]">SELL</button>
+          </div>
+
+          <!-- Order Type -->
+          <div class="flex items-center justify-between text-xs mono">
+            <span class="text-[#848e9c]">Type</span>
+            <div class="flex gap-3">
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="orderType" value="LIMIT" checked class="accent-[#2ebd85]">
+                <span>Limit</span>
+              </label>
+              <label class="flex items-center gap-1 cursor-pointer">
+                <input type="radio" name="orderType" value="MARKET" class="accent-[#2ebd85]">
+                <span>Market</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Limit Price -->
+          <div id="price-input-container" class="flex flex-col gap-1">
+            <div class="flex justify-between text-[11px] mono text-[#848e9c]">
+              <span>Price (Ticks)</span>
+              <button id="btn-fill-mid" class="text-[#f0b90b] hover:underline">Set Mid</button>
+            </div>
+            <div class="flex items-center">
+              <button id="btn-price-minus" class="btn-terminal w-8 py-1.5">-</button>
+              <input id="input-price" type="number" step="1" value="10000" class="flex-1 py-1 px-2 text-center text-xs font-semibold mx-1">
+              <button id="btn-price-plus" class="btn-terminal w-8 py-1.5">+</button>
+            </div>
+          </div>
+
+          <!-- Quantity -->
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[11px] mono text-[#848e9c]">
+              <span>Quantity (Lots)</span>
+              <span id="notional-preview" class="text-[#5e6673]">Val: 100,000</span>
+            </div>
+            <div class="flex items-center">
+              <button id="btn-qty-minus" class="btn-terminal w-8 py-1.5">-</button>
+              <input id="input-qty" type="number" step="1" value="10" min="1" class="flex-1 py-1 px-2 text-center text-xs font-semibold mx-1">
+              <button id="btn-qty-plus" class="btn-terminal w-8 py-1.5">+</button>
+            </div>
+          </div>
+
+          <!-- Quick Sizes -->
+          <div class="grid grid-cols-4 gap-1 mono text-[11px]">
+            <button class="btn-qty-preset btn-terminal py-1 text-center" data-qty="5">5</button>
+            <button class="btn-qty-preset btn-terminal py-1 text-center" data-qty="10">10</button>
+            <button class="btn-qty-preset btn-terminal py-1 text-center" data-qty="25">25</button>
+            <button class="btn-qty-preset btn-terminal py-1 text-center" data-qty="100">100</button>
+          </div>
+
+          <!-- Submit Button -->
+          <button id="btn-submit-order" class="btn-buy py-2 text-xs uppercase tracking-wide mono mt-1">
+            <span id="btn-submit-text">Submit Buy Limit</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- SIMULATION & QUANT STRATEGY PANEL -->
+      <div class="terminal-panel">
+        <div class="panel-header">
+          <span>Market Simulator</span>
+          <span id="sim-status-badge" class="mono text-[10px] text-[#848e9c]">PAUSED</span>
+        </div>
+
+        <div class="p-3 flex flex-col gap-2.5">
+          <!-- Sim Controls -->
+          <div class="grid grid-cols-2 gap-1.5">
+            <button id="btn-toggle-sim" class="btn-terminal py-1.5 text-center font-bold">
+              <span id="btn-sim-text">Start Sim</span>
+            </button>
+            <button id="btn-step-sim" class="btn-terminal py-1.5 text-center">
+              <span>Step (+1)</span>
+            </button>
+          </div>
+
+          <!-- Speed Slider -->
+          <div class="flex flex-col gap-1">
+            <div class="flex justify-between text-[11px] mono text-[#848e9c]">
+              <span>Interval</span>
+              <span id="sim-speed-label" class="text-white font-semibold">200 ms</span>
+            </div>
+            <input id="sim-speed-slider" type="range" min="30" max="1000" step="10" value="200" class="w-full">
+          </div>
+
+          <!-- Regime -->
+          <div class="flex flex-col gap-1">
+            <label class="text-[11px] mono text-[#848e9c]">Regime</label>
+            <select id="select-regime" class="py-1 px-2 text-xs">
+              <option value="NORMAL">Normal</option>
+              <option value="HIGH_VOLATILITY">High Volatility</option>
+              <option value="LOW_LIQUIDITY">Low Liquidity</option>
+              <option value="BUY_IMBALANCE">Buy Imbalance</option>
+              <option value="SELL_IMBALANCE">Sell Imbalance</option>
+            </select>
+          </div>
+
+          <!-- Algo MM Strategy -->
+          <div class="flex flex-col gap-1">
+            <label class="text-[11px] mono text-[#848e9c]">Market Making Algo</label>
+            <select id="select-strategy" class="py-1 px-2 text-xs text-[#f0b90b]">
+              <option value="NONE">Off (Disabled)</option>
+              <option value="BASELINE">Baseline (Inventory-Aware)</option>
+              <option value="AVELLANEDA_STOIKOV" selected>Avellaneda-Stoikov (Optimal Control)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COL 2: CHART & LEVEL 2 ORDER BOOK (Width: 6 cols) -->
+    <div class="col-span-12 lg:col-span-6 flex flex-col gap-2 overflow-hidden">
+      
+      <!-- PRICE PROGRESSION CHART -->
+      <div class="terminal-panel flex-1 min-h-[200px]">
+        <div class="panel-header">
+          <span>Price Progression</span>
+          <div class="flex items-center gap-4 text-[10px] mono">
+            <span class="flex items-center gap-1.5"><span class="w-2 h-0.5 bg-[#eaecef]"></span> Mid</span>
+            <span class="flex items-center gap-1.5"><span class="w-2 h-0.5 bg-[#f0b90b]"></span> Ref</span>
+          </div>
+        </div>
+        <div class="relative flex-1 w-full h-full min-h-[140px] bg-[#0b0e14]">
+          <canvas id="priceChart" class="w-full h-full block"></canvas>
+        </div>
+      </div>
+
+      <!-- LEVEL 2 DEPTH OF MARKET (ORDER BOOK) -->
+      <div class="terminal-panel flex-1 min-h-[270px] overflow-hidden">
+        <div class="panel-header">
+          <span>Order Book (L2 Depth)</span>
+          <span class="mono text-[10px] text-[#5e6673]">15 LEVELS</span>
+        </div>
+
+        <!-- Table Columns -->
+        <div class="grid grid-cols-3 text-[10px] mono text-[#5e6673] px-2 py-1 border-b border-[#232838] uppercase">
+          <div>Price</div>
+          <div class="text-center">Size</div>
+          <div class="text-right">Orders</div>
+        </div>
+
+        <div class="flex flex-col flex-1 overflow-y-auto mono">
+          <!-- Asks -->
+          <div id="asks-container" class="flex flex-col justify-end flex-1"></div>
+
+          <!-- Spread Banner -->
+          <div class="py-1 px-2 bg-[#161a26] border-y border-[#232838] flex items-center justify-between text-xs font-semibold">
+            <div class="flex items-center gap-2">
+              <span class="text-[#5e6673] text-[10px]">MID:</span>
+              <span id="dom-mid-price" class="text-white">--</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[#5e6673] text-[10px]">SPREAD:</span>
+              <span id="dom-spread" class="text-[#f0b90b]">--</span>
+            </div>
+          </div>
+
+          <!-- Bids -->
+          <div id="bids-container" class="flex flex-col flex-1"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COL 3: TIME & SALES + USER WORKING ORDERS (Width: 3 cols) -->
+    <div class="col-span-12 lg:col-span-3 flex flex-col gap-2 overflow-hidden">
+      
+      <!-- TIME & SALES -->
+      <div class="terminal-panel flex-1 min-h-[220px] overflow-hidden">
+        <div class="panel-header">
+          <span>Time & Sales</span>
+          <span id="trade-count-badge" class="mono text-[10px] text-[#848e9c]">0 TRADES</span>
+        </div>
+
+        <div class="grid grid-cols-4 text-[10px] mono text-[#5e6673] px-2 py-1 border-b border-[#232838] uppercase">
+          <div>Time</div>
+          <div>Side</div>
+          <div class="text-right">Price</div>
+          <div class="text-right">Size</div>
+        </div>
+
+        <div id="trades-container" class="flex-1 overflow-y-auto mono flex flex-col text-[11px]"></div>
+      </div>
+
+      <!-- WORKING ORDERS -->
+      <div class="terminal-panel flex-1 min-h-[190px] overflow-hidden">
+        <div class="panel-header">
+          <span>Working Orders</span>
+          <span class="mono text-[10px] text-[#5e6673]">O(1) CANCEL</span>
+        </div>
+
+        <div class="grid grid-cols-5 text-[10px] mono text-[#5e6673] px-2 py-1 border-b border-[#232838] uppercase">
+          <div>ID</div>
+          <div>Side</div>
+          <div class="text-right">Price</div>
+          <div class="text-right">Size</div>
+          <div class="text-center">Action</div>
+        </div>
+
+        <div id="user-orders-container" class="flex-1 overflow-y-auto mono flex flex-col p-1 gap-1 text-[11px]"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- BOTTOM STRATEGY & RISK MONITOR -->
+  <footer class="bg-[#11141d] border-t border-[#232838] px-3 py-1.5 text-xs mono">
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 items-center">
+      
+      <!-- Inventory Meter -->
+      <div class="flex flex-col gap-0.5 col-span-2 md:col-span-2">
+        <div class="flex justify-between text-[10px] text-[#848e9c]">
+          <span>INVENTORY (q)</span>
+          <span id="mm-inventory-val" class="font-semibold text-white">0 / ±100</span>
+        </div>
+        <div class="w-full bg-[#151924] h-2 rounded-[1px] border border-[#232838] relative overflow-hidden">
+          <div id="mm-inventory-bar" class="h-full bg-[#848e9c]" style="width: 50%;"></div>
+        </div>
+      </div>
+
+      <!-- Realized PnL -->
+      <div>
+        <span class="text-[#5e6673] text-[10px] block">REALIZED P&L</span>
+        <span id="mm-realized-pnl" class="font-semibold text-white">$0.00</span>
+      </div>
+
+      <!-- Unrealized PnL -->
+      <div>
+        <span class="text-[#5e6673] text-[10px] block">UNREALIZED P&L</span>
+        <span id="mm-unrealized-pnl" class="font-semibold text-white">$0.00</span>
+      </div>
+
+      <!-- Total PnL -->
+      <div>
+        <span class="text-[#5e6673] text-[10px] block">TOTAL P&L</span>
+        <span id="mm-total-pnl" class="font-semibold text-white">$0.00</span>
+      </div>
+
+      <!-- Reservation Price -->
+      <div>
+        <span class="text-[#5e6673] text-[10px] block">RESERVATION (r)</span>
+        <span id="mm-reservation-price" class="font-semibold text-[#f0b90b]">--</span>
+      </div>
+
+      <!-- Volatility -->
+      <div>
+        <span class="text-[#5e6673] text-[10px] block">VOLATILITY (σ)</span>
+        <span id="mm-volatility" class="font-semibold text-white">--</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

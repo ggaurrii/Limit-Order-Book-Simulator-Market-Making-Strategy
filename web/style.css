@@ -1,0 +1,188 @@
+/* Institutional Trading Terminal Styling */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-root: #0b0e14;
+  --bg-panel: #11141d;
+  --bg-panel-header: #161a26;
+  --bg-hover: #1c2130;
+  --bg-input: #151924;
+  --border-main: #232838;
+  --border-subtle: #1a1e2b;
+
+  --color-buy: #2ebd85;
+  --color-buy-soft: rgba(46, 189, 133, 0.12);
+  --color-sell: #f6465d;
+  --color-sell-soft: rgba(246, 70, 93, 0.12);
+  
+  --color-accent: #f0b90b;
+  --color-text-main: #eaecef;
+  --color-text-sub: #848e9c;
+  --color-text-dim: #5e6673;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-root);
+  color: var(--color-text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  user-select: none;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-root);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-main);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-dim);
+}
+
+/* Terminal Panels */
+.terminal-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-main);
+  border-radius: 2px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.panel-header {
+  background: var(--bg-panel-header);
+  border-bottom: 1px solid var(--border-main);
+  padding: 5px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--color-text-sub);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Depth Bars for DOM */
+.dom-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  padding: 2px 8px;
+  position: relative;
+  font-size: 11px;
+  cursor: pointer;
+}
+.dom-row:hover {
+  background-color: var(--bg-hover);
+}
+
+.dom-bar-ask {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  background: var(--color-sell-soft);
+  pointer-events: none;
+}
+
+.dom-bar-bid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  background: var(--color-buy-soft);
+  pointer-events: none;
+}
+
+/* Inputs & Form Controls */
+input, select {
+  background: var(--bg-input);
+  border: 1px solid var(--border-main);
+  color: var(--color-text-main);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  border-radius: 2px;
+  outline: none;
+}
+input:focus, select:focus {
+  border-color: var(--color-text-sub);
+}
+
+/* Standard Buttons */
+.btn-terminal {
+  background: #1e232f;
+  border: 1px solid var(--border-main);
+  color: var(--color-text-main);
+  border-radius: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+.btn-terminal:hover {
+  background: #282f3f;
+}
+
+.btn-buy {
+  background: var(--color-buy);
+  color: #0b0e14;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.btn-buy:hover {
+  background: #38d697;
+}
+
+.btn-sell {
+  background: var(--color-sell);
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  cursor: pointer;
+  border-radius: 2px;
+}
+.btn-sell:hover {
+  background: #ff5c73;
+}
+
+/* Range input */
+input[type=range] {
+  -webkit-appearance: none;
+  height: 4px;
+  background: var(--border-main);
+  border: none;
+  border-radius: 1px;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--color-text-sub);
+  cursor: pointer;
+}
